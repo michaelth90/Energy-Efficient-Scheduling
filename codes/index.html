@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EARR CPU Scheduling</title>
+    <link rel="stylesheet" href="styless.css">
+</head>
+<body>
+    <h2>Energy-Aware Round Robin (EARR) Scheduler</h2>
+    <div class="explanation">
+        <h3>About Energy-Aware Round Robin</h3>
+        <p>Energy-Aware Round Robin (EARR) is an enhanced version of traditional Round Robin scheduling that optimizes for power efficiency. It achieves this by:</p>
+        <ul>
+            <li>Dynamically adjusting time quanta based on process requirements</li>
+            <li>Consolidating processes to fewer cores to allow power-gating unused ones</li>
+            <li>Utilizing DVFS (Dynamic Voltage and Frequency Scaling) to lower clock speeds when possible</li>
+            <li>Preferring low-power cores in heterogeneous systems (like ARM's big.LITTLE)</li>
+            <li>Minimizing context switches for energy-intensive processes</li>
+        </ul>
+        
+        <h4>Key Differences from Standard Round Robin:</h4>
+        <ul>
+            <li><strong>Power Management:</strong> EARR considers energy consumption while standard RR doesn't</li>
+            <li><strong>Time Quantum:</strong> EARR uses variable quanta based on process needs</li>
+            <li><strong>Core Usage:</strong> EARR consolidates processes to enable core sleeping</li>
+            <li><strong>Frequency Scaling:</strong> EARR can adjust CPU frequency dynamically</li>
+            <li><strong>Heterogeneous Support:</strong> EARR works efficiently with different core types</li>
+        </ul>
+    </div>
+    
+    <div class="container">
+        <h3>Enter Process Details</h3>
+        <form id="processForm">
+            <label for="pid">Process ID:</label>
+            <input type="text" id="pid">
+            
+            <label for="arrivalTime">Arrival Time:</label>
+            <input type="number" id="arrivalTime">
+            
+            <label for="burstTime">Burst Time:</label>
+            <input type="number" id="burstTime">
+            
+            <button type="button" onclick="addProcess()">Add Process</button>
+        </form>
+    </div>
+
+    <div class="container">
+        <h3>Process List</h3>
+        <table id="processTable">
+            <tr>
+                <th>Process ID</th>
+                <th>Arrival Time</th>
+                <th>Burst Time</th>
+            </tr>
+        </table>
+    </div>
+
+    <div class="container">
+        <button onclick="calculateEARR()">Run EARR Scheduling</button>
+    </div>
+
+    <div class="container">
+        <h3>Scheduling Results</h3>
+        <table id="resultTable">
+            <tr>
+                <th>Process ID</th>
+                <th>Waiting Time</th>
+                <th>Turnaround Time</th>
+                <th>Energy Consumption</th>
+            </tr>
+        </table>
+    </div>
+
+    <script src="scriptt.js"></script>
+</body>
+</html>
