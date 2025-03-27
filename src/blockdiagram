@@ -1,0 +1,20 @@
+# Block Diagram
+```
+
+[User Interface]  
+      |  
+      v  
+[Process Input Form] --> [Add Process] --> [Process Table]  
+      |                                      |  
+      |                                      v  
+      +------------------------------> [Run EARR Scheduling]  
+                                              |  
+                                              v  
+                                      [Algorithm Processing]  
+                                              |  
+                                              v  
+                                      [Results Calculation]  
+                                              |  
+                                              v  
+                                      [Display Results Table]  
+ ```
