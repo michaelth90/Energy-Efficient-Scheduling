@@ -7,47 +7,34 @@ This project implements an Energy-Aware Round Robin (EARR) scheduling algorithm 
 
 The EARR algorithm extends traditional Round Robin scheduling by incorporating energy consumption considerations, making it relevant for modern computing systems where energy efficiency is critical. The algorithm dynamically adjusts time quantum and considers processor power states to optimize both performance and energy usage.
 
-Features:
-- Dynamic voltage and frequency scaling (DVFS) integration
-- Workload-aware task scheduling
-- Energy-performance tradeoff optimization
-- Real-time and non-real-time task support
-- Deadline Awareness
-- Quality of Service (QoS) Considerations 
+Technology Used:-
+Programming Languages:
+HTML5: For website structure and content.
 
-Algorithm Types Implemented:
-1. Energy-Aware Earliest Deadline First (EA-EDF)
-2. Power-Aware Round Robin (PA-RR)
-3. Dynamic Priority Energy-Efficient Scheduling (DPES)
+CSS3: For styling and visual presentation.
 
-Requirements:
-- Python 3.8+
-- Linux kernel (for DVFS testing)
-- psutil library
-- numpy
+JavaScript: For algorithm implementation and interactivity.
 
-Block Diagram:
+Flow Diagram
 ```
 
-+-------------------------------------------------------+
-|               Energy-Efficient Scheduler               |
-+-------------------------------------------------------+
-|  +-------------------+       +---------------------+  |
-|  |   Task Queue      |       |   Power Management  |  |
-|  | (Ready Processes) |<--->  |   (DVFS, Sleep)     |  |
-|  +-------------------+       +---------------------+  |
-|           |                           ^                |
-|           v                           |                |
-|  +-------------------+       +---------------------+  |
-|  |  Scheduling Logic |       |   Energy Monitor    |  |
-|  | (E.g., EDF, MLFQ) |<----->| (CPU Utilization,   |  |
-|  +-------------------+       |  Temp, Power)       |  |
-|           |                  +---------------------+  |
-|           v                                           |
-|  +-------------------+                                |
-|  |  CPU Core (Low    |                                |
-|  |  Power States)    |                                |
-|  +-------------------+                                |
-+-------------------------------------------------------+
-+-------------------------------------------------------+
+[User Interface]  
+      |  
+      v  
+[Process Input Form] --> [Add Process] --> [Process Table]  
+      |                                      |  
+      |                                      v  
+      +------------------------------> [Run EARR Scheduling]  
+                                              |  
+                                              v  
+                                      [Algorithm Processing]  
+                                              |  
+                                              v  
+                                      [Results Calculation]  
+                                              |  
+                                              v  
+                                      [Display Results Table]
 ```
+
+Conclusion:
+This project successfully demonstrates an energy-aware Round Robin (EARR) approach to CPU process scheduling through a user-friendly web interface. The algorithm provides a balance between performance metrics (waiting time, turnaround time) and energy efficiency.
