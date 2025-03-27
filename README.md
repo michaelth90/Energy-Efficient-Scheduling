@@ -7,6 +7,24 @@ This project implements an Energy-Aware Round Robin (EARR) scheduling algorithm 
 
 The EARR algorithm extends traditional Round Robin scheduling by incorporating energy consumption considerations, making it relevant for modern computing systems where energy efficiency is critical. The algorithm dynamically adjusts time quantum and considers processor power states to optimize both performance and energy usage.
 
+Key improvements over traditional RR:
+
+Dynamic Time Quantum: Adjusts based on process characteristics
+
+Energy Modeling: Tracks power consumption in Joules
+
+Efficient Context Switching: Minimizes overhead
+
+Key Features:
+
+Energy-aware scheduling decisions
+
+Real-time calculations
+
+No backend required
+
+Educational visualization
+
 Technology Used:-
 
 Programming Languages:
