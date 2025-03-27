@@ -6,6 +6,7 @@ An energy-efficient CPU scheduling is an algorithm that reduces power consumptio
 This project implements an Energy-Aware Round Robin (EARR) scheduling algorithm for CPU process management with a focus on energy efficiency. The system provides a web-based interface where users can input process details (Process ID, Arrival Time, and Burst Time) and visualize the scheduling results, including waiting time, turnaround time, and energy consumption metrics.
 
 The EARR algorithm extends traditional Round Robin scheduling by incorporating energy consumption considerations, making it relevant for modern computing systems where energy efficiency is critical. The algorithm dynamically adjusts time quantum and considers processor power states to optimize both performance and energy usage.
+
 Features:
 - Dynamic voltage and frequency scaling (DVFS) integration
 - Workload-aware task scheduling
