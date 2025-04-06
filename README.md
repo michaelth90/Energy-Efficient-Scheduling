@@ -1,4 +1,4 @@
-# Energy Efficient Scheduling
+# Energy Efficient CPU Scheduling
 Overview
 
 An energy-efficient CPU scheduling is an algorithm that reduces power consumption while maintaining acceptable performance levels. The algorithm dynamically adjusts CPU frequency and scheduling decisions based on workload characteristics. Our goal is to reduce CPU energy consumption by as much as possible, while meeting the statistical performance requirements of multimedia tasks. The operating system therefore needs to provide predictable CPU scheduling and speed scaling. To do this, we enhance the CPU scheduler to integrate scheduling and speed scaling.
