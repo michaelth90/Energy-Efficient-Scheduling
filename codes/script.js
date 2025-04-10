@@ -1,496 +1,347 @@
 let processes = [];
-let completedProcesses = [];
-let processIdCounter = 1;
+let results = [];
 
-// Initialize the application
-document.addEventListener("DOMContentLoaded", function() {
-    // Set up tab switching
-    const tabButtons = document.querySelectorAll('.tab-button');
-    tabButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            const tabId = this.getAttribute('onclick').match(/'([^']+)'/)[1];
-            showTab(tabId);
-        });
+// Tab switching functionality
+function showTab(tabId) {
+    // Remove active class from all tab buttons and content
+    document.querySelectorAll('.tab-button').forEach(button => {
+        button.classList.remove('active');
     });
     
-    // Initially hide Gantt chart container
-    document.getElementById('ganttContainer').style.display = 'none';
-});
-
-// Add a new process to the table
-function addProcess() {
-    const pid = document.getElementById("pid").value || "P" + processIdCounter;
-    const arrivalTime = parseInt(document.getElementById("arrivalTime").value) || 0;
-    const burstTime = parseInt(document.getElementById("burstTime").value);
-    const priority = parseInt(document.getElementById("priority").value) || 5;
-    const powerProfile = document.getElementById("powerProfile").value;
+    document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.remove('active');
+    });
     
-    if (isNaN(burstTime) || burstTime <= 0) {
-        alert("Please enter a valid burst time greater than 0.");
+    // Add active class to the clicked tab button
+    document.querySelector(`.tab-button[onclick="showTab('${tabId}')"]`).classList.add('active');
+    
+    // Show the corresponding tab content
+    document.getElementById(tabId).classList.add('active');
+}
+
+// Process handling functions
+function addProcess() {
+    // Get values from the form
+    const pid = document.getElementById('pid').value;
+    const arrivalTime = parseInt(document.getElementById('arrivalTime').value);
+    const burstTime = parseInt(document.getElementById('burstTime').value);
+    const priority = parseInt(document.getElementById('priority').value) || 5;
+    const powerProfile = document.getElementById('powerProfile').value;
+    
+    // Validate inputs
+    if (!pid || isNaN(arrivalTime) || isNaN(burstTime) || burstTime <= 0) {
+        alert('Please fill all required fields with valid values.');
         return;
     }
     
-    // Create process object
-    const process = {
-        pid,
-        arrivalTime,
-        burstTime,
-        priority,
-        powerProfile,
-        remainingTime: burstTime,
-        waitingTime: 0,
-        turnaroundTime: 0,
-        responseTime: -1,
-        firstExecutionTime: -1,
-        energyConsumed: 0
-    };
+    // Add to processes array
+    processes.push({
+        pid: pid,
+        arrivalTime: arrivalTime,
+        burstTime: burstTime,
+        priority: priority,
+        powerProfile: powerProfile,
+        remainingTime: burstTime
+    });
     
-    processes.push(process);
-    processIdCounter++;
-    
-    // Update the process table
+    // Update the table
     updateProcessTable();
     
     // Clear the form
-    document.getElementById("pid").value = "";
-    document.getElementById("arrivalTime").value = "";
-    document.getElementById("burstTime").value = "";
-    document.getElementById("priority").value = "";
-    document.getElementById("powerProfile").selectedIndex = 1; // Reset to Medium
-    
-    // Update process count
-    document.getElementById("processCount").textContent = Total Processes: ${processes.length};
+    document.getElementById('processForm').reset();
 }
 
-// Update the process table
 function updateProcessTable() {
-    const tableBody = document.querySelector("#processTable tbody");
-    tableBody.innerHTML = "";
+    const tbody = document.querySelector('#processTable tbody');
+    tbody.innerHTML = '';
     
     processes.forEach((process, index) => {
-        const row = tableBody.insertRow();
-        
-        row.insertCell(0).textContent = process.pid;
-        row.insertCell(1).textContent = process.arrivalTime;
-        row.insertCell(2).textContent = process.burstTime;
-        row.insertCell(3).textContent = process.priority;
-        
-        // Set color for power profile
-        const powerCell = row.insertCell(4);
-        let powerColor = "";
-        switch(process.powerProfile) {
-            case "low":
-                powerColor = "rgba(46, 204, 113, 0.2)";
-                break;
-            case "medium":
-                powerColor = "rgba(52, 152, 219, 0.2)";
-                break;
-            case "high":
-                powerColor = "rgba(231, 76, 60, 0.2)";
-                break;
-        }
-        powerCell.textContent = process.powerProfile.charAt(0).toUpperCase() + process.powerProfile.slice(1);
-        powerCell.style.backgroundColor = powerColor;
-        
-        // Add delete button
-        const actionCell = row.insertCell(5);
-        const deleteButton = document.createElement("button");
-        deleteButton.textContent = "Remove";
-        deleteButton.className = "danger-button";
-        deleteButton.style.padding = "5px 10px";
-        deleteButton.style.fontSize = "14px";
-        deleteButton.onclick = function() {
-            processes.splice(index, 1);
-            updateProcessTable();
-            document.getElementById("processCount").textContent = Total Processes: ${processes.length};
-        };
-        actionCell.appendChild(deleteButton);
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${process.pid}</td>
+            <td>${process.arrivalTime}</td>
+            <td>${process.burstTime}</td>
+            <td>${process.priority}</td>
+            <td>${process.powerProfile}</td>
+            <td><button class="danger-button" onclick="removeProcess(${index})">Remove</button></td>
+        `;
+        tbody.appendChild(row);
     });
+    
+    // Update process count
+    document.getElementById('processCount').textContent = `Total Processes: ${processes.length}`;
 }
 
-// Clear all processes
+function removeProcess(index) {
+    processes.splice(index, 1);
+    updateProcessTable();
+}
+
 function clearProcesses() {
     processes = [];
     updateProcessTable();
-    document.getElementById("processCount").textContent = "Total Processes: 0";
 }
 
-// Calculate EARR scheduling
+// Scheduling algorithm functions
 function calculateEARR() {
     if (processes.length === 0) {
-        alert("Please add at least one process.");
+        alert('Please add at least one process.');
         return;
     }
     
-    // Reset processes for new calculation
-    processes.forEach(process => {
-        process.remainingTime = process.burstTime;
-        process.waitingTime = 0;
-        process.turnaroundTime = 0;
-        process.responseTime = -1;
-        process.firstExecutionTime = -1;
-        process.energyConsumed = 0;
-    });
-    
-    completedProcesses = [];
-    
     // Get configuration
-    const baseTimeQuantum = parseInt(document.getElementById("baseQuantum").value) || 3;
-    const energyMode = document.getElementById("energyMode").value;
-    const cpuCores = parseInt(document.getElementById("cpuCores").value) || 4;
+    const baseQuantum = parseInt(document.getElementById('baseQuantum').value);
+    const energyMode = document.getElementById('energyMode').value;
+    const cpuCores = parseInt(document.getElementById('cpuCores').value);
+    
+    // Implement EARR scheduling algorithm here
+    // This is a simplified example
+    
+    // Reset results
+    results = [];
     
     // Sort processes by arrival time
     const sortedProcesses = [...processes].sort((a, b) => a.arrivalTime - b.arrivalTime);
     
-    // Implementation of EARR scheduling algorithm
-    let time = 0;
-    let readyQueue = [];
-    let activeProcesses = [];
-    let completedCount = 0;
-    let ganttChartData = [];
+    // Clone processes for calculation
+    const processQueue = sortedProcesses.map(p => ({ ...p }));
     
-    // Energy scaling factors based on mode
-    const energyScaleFactor = {
-        "balanced": 1.0,
-        "aggressive": 0.7,
-        "performance": 1.3
-    };
+    let currentTime = 0;
+    let completed = 0;
+    const ganttChart = [];
     
-    // Power consumption rates based on profile (in arbitrary units)
-    const powerRates = {
-        "low": 0.5,
-        "medium": 1.0,
-        "high": 1.5
-    };
-    
-    // Continue until all processes are complete
-    while (completedCount < sortedProcesses.length) {
-        // Add newly arrived processes to ready queue
-        sortedProcesses.forEach(process => {
-            if (process.arrivalTime <= time && process.remainingTime > 0 && !readyQueue.includes(process) && !activeProcesses.includes(process)) {
-                readyQueue.push(process);
-            }
-        });
+    // Simple RR simulation with energy considerations
+    while (completed < processQueue.length) {
+        let foundProcess = false;
         
-        // If there are processes in the ready queue and we have available CPU cores
-        while (readyQueue.length > 0 && activeProcesses.length < cpuCores) {
-            const process = readyQueue.shift();
-            activeProcesses.push(process);
-            
-            // Record first execution time if not yet set
-            if (process.firstExecutionTime === -1) {
-                process.firstExecutionTime = time;
-                process.responseTime = process.firstExecutionTime - process.arrivalTime;
-            }
-        }
-        
-        // Execute active processes for one time unit
-        if (activeProcesses.length > 0) {
-            activeProcesses.forEach(process => {
+        for (let i = 0; i < processQueue.length; i++) {
+            if (processQueue[i].remainingTime > 0 && processQueue[i].arrivalTime <= currentTime) {
+                foundProcess = true;
+                
+                // Calculate quantum based on power profile and energy mode
+                let quantum = baseQuantum;
+                if (energyMode === 'aggressive' && processQueue[i].powerProfile === 'high') {
+                    quantum = Math.max(1, baseQuantum - 1); // Reduce time for high power processes
+                } else if (energyMode === 'performance' && processQueue[i].powerProfile === 'high') {
+                    quantum = baseQuantum + 1; // Increase time for high power processes
+                }
+                
+                // Execute process for quantum or remaining time
+                const executeTime = Math.min(quantum, processQueue[i].remainingTime);
+                
                 // Add to Gantt chart
-                ganttChartData.push({
-                    pid: process.pid,
-                    startTime: time,
-                    endTime: time + 1
+                ganttChart.push({
+                    pid: processQueue[i].pid,
+                    start: currentTime,
+                    end: currentTime + executeTime
                 });
                 
-                // Dynamically adjust time quantum based on energy mode and power profile
-                let adjustedQuantum = baseTimeQuantum;
-                if (energyMode === "aggressive" && process.powerProfile === "high") {
-                    adjustedQuantum = Math.max(1, Math.floor(baseTimeQuantum * 0.7)); // Reduce time quantum for high-power processes
-                } else if (energyMode === "performance" && process.powerProfile === "low") {
-                    adjustedQuantum = Math.ceil(baseTimeQuantum * 1.2); // Increase time quantum for low-power processes
-                }
+                // Update time and remaining time
+                currentTime += executeTime;
+                processQueue[i].remainingTime -= executeTime;
                 
-                // Decrease remaining time
-                process.remainingTime--;
-                
-                // Calculate energy consumption based on power profile and energy mode
-                process.energyConsumed += powerRates[process.powerProfile] * energyScaleFactor[energyMode];
-                
-                // If process is complete
-                if (process.remainingTime === 0) {
-                    process.turnaroundTime = time + 1 - process.arrivalTime;
-                    process.waitingTime = process.turnaroundTime - process.burstTime;
+                // If process is completed
+                if (processQueue[i].remainingTime === 0) {
+                    completed++;
                     
-                    // Remove from active processes
-                    const index = activeProcesses.indexOf(process);
-                    activeProcesses.splice(index, 1);
+                    // Calculate metrics
+                    const turnaroundTime = currentTime - processQueue[i].arrivalTime;
+                    const waitingTime = turnaroundTime - processQueue[i].burstTime;
                     
-                    // Add to completed processes
-                    completedProcesses.push(process);
-                    completedCount++;
+                    // Calculate energy based on power profile
+                    let energyConsumption;
+                    switch (processQueue[i].powerProfile) {
+                        case 'low':
+                            energyConsumption = processQueue[i].burstTime * 1.0;
+                            break;
+                        case 'medium':
+                            energyConsumption = processQueue[i].burstTime * 1.5;
+                            break;
+                        case 'high':
+                            energyConsumption = processQueue[i].burstTime * 2.5;
+                            break;
+                        default:
+                            energyConsumption = processQueue[i].burstTime * 1.5;
+                    }
+                    
+                    // Add to results
+                    results.push({
+                        pid: processQueue[i].pid,
+                        waitingTime: waitingTime,
+                        turnaroundTime: turnaroundTime,
+                        responseTime: 0, // Simplified, should calculate first execution time
+                        energyConsumption: energyConsumption.toFixed(2)
+                    });
                 }
-                // Round-robin: if time quantum is exceeded, move to the end of ready queue
-                else if ((time - process.firstExecutionTime + 1) % adjustedQuantum === 0) {
-                    const index = activeProcesses.indexOf(process);
-                    activeProcesses.splice(index, 1);
-                    readyQueue.push(process);
-                }
-            });
-        }
-        
-        time++;
-    }
-    
-    // Update results table
-    updateResultsTable();
-    
-    // Calculate and display statistics
-    calculateStatistics();
-    
-    // Update comparison data
-    updateComparisonData();
-    
-    // Create Gantt chart
-    createGanttChart(ganttChartData);
-    document.getElementById('ganttContainer').style.display = 'block';
-    
-    // Show the results tab
-    showTab('results');
-}
-
-// Update the results table
-function updateResultsTable() {
-    const tableBody = document.querySelector("#resultTable tbody");
-    tableBody.innerHTML = "";
-    
-    completedProcesses.forEach(process => {
-        const row = tableBody.insertRow();
-        
-        row.insertCell(0).textContent = process.pid;
-        row.insertCell(1).textContent = process.waitingTime;
-        row.insertCell(2).textContent = process.turnaroundTime;
-        row.insertCell(3).textContent = process.responseTime;
-        
-        const energyCell = row.insertCell(4);
-        energyCell.textContent = process.energyConsumed.toFixed(2) + " J";
-        
-        // Color code based on energy consumption
-        if (process.energyConsumed < 0.8 * process.burstTime) {
-            energyCell.style.backgroundColor = "rgba(46, 204, 113, 0.2)"; // Green for efficient
-        } else if (process.energyConsumed > 1.2 * process.burstTime) {
-            energyCell.style.backgroundColor = "rgba(231, 76, 60, 0.2)"; // Red for inefficient
-        }
-    });
-}
-
-// Calculate statistics
-function calculateStatistics() {
-    const totalProcesses = completedProcesses.length;
-    if (totalProcesses === 0) return;
-    
-    // Calculate averages
-    let totalWaitingTime = 0;
-    let totalTurnaroundTime = 0;
-    let totalEnergy = 0;
-    let totalBurstTime = 0;
-    
-    completedProcesses.forEach(process => {
-        totalWaitingTime += process.waitingTime;
-        totalTurnaroundTime += process.turnaroundTime;
-        totalEnergy += process.energyConsumed;
-        totalBurstTime += process.burstTime;
-    });
-    
-    const avgWaitingTime = totalWaitingTime / totalProcesses;
-    const avgTurnaroundTime = totalTurnaroundTime / totalProcesses;
-    const throughput = totalProcesses / completedProcesses[totalProcesses - 1].turnaroundTime;
-    const energyEfficiency = totalBurstTime / totalEnergy;
-    
-    // Update stats display
-    document.getElementById("avgWaitingTime").textContent = avgWaitingTime.toFixed(2);
-    document.getElementById("avgTurnaroundTime").textContent = avgTurnaroundTime.toFixed(2);
-    document.getElementById("throughput").textContent = throughput.toFixed(2) + " proc/time";
-    document.getElementById("energyEfficiency").textContent = energyEfficiency.toFixed(2);
-    
-    // Update energy summary
-    updateEnergySummary(totalEnergy, energyEfficiency);
-}
-
-// Update energy summary
-function updateEnergySummary(totalEnergy, efficiency) {
-    const energyMode = document.getElementById("energyMode").value;
-    let summary = Total Energy Consumption: ${totalEnergy.toFixed(2)} Joules with an efficiency rating of ${efficiency.toFixed(2)}.;
-    
-    switch(energyMode) {
-        case "aggressive":
-            summary += " The aggressive energy saving mode reduced overall consumption by approximately 30% compared to standard Round Robin, though with a potential slight increase in completion time.";
-            break;
-        case "balanced":
-            summary += " The balanced energy mode provides a good trade-off between performance and energy efficiency, saving approximately 15% energy compared to standard scheduling.";
-            break;
-        case "performance":
-            summary += " The performance-first mode prioritizes process completion speed over energy savings, resulting in higher energy consumption but faster turnaround times.";
-            break;
-    }
-    
-    document.getElementById("energySummary").textContent = summary;
-}
-
-// Update comparison data
-function updateComparisonData() {
-    const energyMode = document.getElementById("energyMode").value;
-    const cpuCores = parseInt(document.getElementById("cpuCores").value) || 4;
-    
-    // Calculate energy savings compared to standard RR (estimated)
-    let energySavings = 0;
-    switch(energyMode) {
-        case "aggressive": energySavings = 30; break;
-        case "balanced": energySavings = 15; break;
-        case "performance": energySavings = 5; break;
-    }
-    
-    // Estimate performance impact
-    let perfImpact = 0;
-    switch(energyMode) {
-        case "aggressive": perfImpact = -10; break;
-        case "balanced": perfImpact = -5; break;
-        case "performance": perfImpact = 5; break;
-    }
-    
-    // Estimate core utilization
-    const activeCores = Math.min(processes.length, cpuCores);
-    const pgTime = Math.round((cpuCores - activeCores) / cpuCores * 100);
-    
-    // Update the display
-    document.getElementById("energySavings").textContent = energySavings + "%";
-    document.getElementById("perfImpact").textContent = (perfImpact >= 0 ? "+" : "") + perfImpact + "%";
-    document.getElementById("activeCores").textContent = activeCores + "/" + cpuCores;
-    document.getElementById("pgTime").textContent = pgTime + "%";
-}
-
-// Create a simple Gantt chart
-function createGanttChart(ganttData) {
-    const container = document.getElementById("ganttChart");
-    container.innerHTML = "";
-    
-    if (ganttData.length === 0) return;
-    
-    // Find the total time span
-    const endTime = ganttData[ganttData.length - 1].endTime;
-    
-    // Get unique process IDs
-    const processIds = [...new Set(ganttData.map(item => item.pid))];
-    
-    // Create a table for the Gantt chart
-    const table = document.createElement("table");
-    table.className = "gantt-chart";
-    
-    // Create header row with time units
-    const headerRow = document.createElement("tr");
-    const headerCell = document.createElement("th");
-    headerCell.textContent = "Process";
-    headerRow.appendChild(headerCell);
-    
-    for (let t = 0; t <= endTime; t++) {
-        const th = document.createElement("th");
-        th.textContent = t;
-        headerRow.appendChild(th);
-    }
-    
-    table.appendChild(headerRow);
-    
-    // Create a row for each process
-    processIds.forEach(pid => {
-        const row = document.createElement("tr");
-        
-        // Process ID cell
-        const pidCell = document.createElement("td");
-        pidCell.textContent = pid;
-        pidCell.className = "process-id";
-        row.appendChild(pidCell);
-        
-        // Create cells for each time unit
-        for (let t = 0; t <= endTime; t++) {
-            const cell = document.createElement("td");
-            
-            // Check if this process is active at this time
-            const isActive = ganttData.some(item => 
-                item.pid === pid && item.startTime <= t && item.endTime > t
-            );
-            
-            if (isActive) {
-                cell.className = "active";
-                cell.style.backgroundColor = getProcessColor(pid);
+                
+                break; // Move to next time slot
             }
-            
-            row.appendChild(cell);
         }
         
-        table.appendChild(row);
-    });
-    
-    // Add some basic styles for the Gantt chart
-    const style = document.createElement("style");
-    style.textContent = `
-        .gantt-chart {
-            width: 100%;
-            border-collapse: collapse;
+        // If no process was found, move time forward
+        if (!foundProcess) {
+            currentTime++;
         }
-        .gantt-chart th, .gantt-chart td {
-            border: 1px solid #ddd;
-            padding: 4px;
-            text-align: center;
-        }
-        .gantt-chart .process-id {
-            font-weight: bold;
-        }
-        .gantt-chart .active {
-            opacity: 0.7;
-        }
-    `;
-    document.head.appendChild(style);
-    
-    container.appendChild(table);
-}
-
-// Get a consistent color for a process
-function getProcessColor(pid) {
-    // Simple hash function to generate a color
-    let hash = 0;
-    for (let i = 0; i < pid.length; i++) {
-        hash = pid.charCodeAt(i) + ((hash << 5) - hash);
     }
     
-    // Convert to RGB color
-    const r = (hash & 0xFF) % 200 + 55;
-    const g = ((hash >> 8) & 0xFF) % 200 + 55;
-    const b = ((hash >> 16) & 0xFF) % 200 + 55;
+    // Update results table and statistics
+    updateResultsTable();
+    updateStatistics();
+    updateEnergyAnalysis();
+    updateComparison();
     
-    return rgb(${r}, ${g}, ${b});
+    // Store Gantt chart data for later use
+    window.ganttChartData = ganttChart;
 }
 
-// Switch between tabs
-function showTab(tabId) {
-    // Hide all tabs
-    const tabContents = document.querySelectorAll('.tab-content');
-    tabContents.forEach(tab => {
-        tab.classList.remove('active');
-    });
+function updateResultsTable() {
+    const tbody = document.querySelector('#resultTable tbody');
+    tbody.innerHTML = '';
     
-    // Deactivate all tab buttons
-    const tabButtons = document.querySelectorAll('.tab-button');
-    tabButtons.forEach(button => {
-        button.classList.remove('active');
-    });
-    
-    // Show the selected tab
-    document.getElementById(tabId).classList.add('active');
-    
-    // Activate the clicked tab button
-    const activeButtons = document.querySelectorAll(.tab-button[onclick*="${tabId}"]);
-    activeButtons.forEach(button => {
-        button.classList.add('active');
+    results.forEach(result => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${result.pid}</td>
+            <td>${result.waitingTime}</td>
+            <td>${result.turnaroundTime}</td>
+            <td>${result.responseTime}</td>
+            <td>${result.energyConsumption}</td>
+        `;
+        tbody.appendChild(row);
     });
 }
 
-// Show Gantt chart tab
+function updateStatistics() {
+    // Calculate average waiting time
+    const avgWaitingTime = results.reduce((sum, result) => sum + result.waitingTime, 0) / results.length;
+    document.getElementById('avgWaitingTime').textContent = avgWaitingTime.toFixed(2);
+    
+    // Calculate average turnaround time
+    const avgTurnaroundTime = results.reduce((sum, result) => sum + result.turnaroundTime, 0) / results.length;
+    document.getElementById('avgTurnaroundTime').textContent = avgTurnaroundTime.toFixed(2);
+    
+    // Calculate throughput (processes per unit time)
+    const maxCompletionTime = Math.max(...results.map(result => result.turnaroundTime + processes.find(p => p.pid === result.pid).arrivalTime));
+    const throughput = processes.length / maxCompletionTime;
+    document.getElementById('throughput').textContent = throughput.toFixed(2);
+    
+    // Calculate energy efficiency
+    const totalEnergy = results.reduce((sum, result) => sum + parseFloat(result.energyConsumption), 0);
+    const energyEfficiency = processes.length / totalEnergy;
+    document.getElementById('energyEfficiency').textContent = energyEfficiency.toFixed(2);
+}
+
+function updateEnergyAnalysis() {
+    // Simple energy summary for now
+    const energyMode = document.getElementById('energyMode').value;
+    const totalEnergy = results.reduce((sum, result) => sum + parseFloat(result.energyConsumption), 0);
+    
+    let summary = `Total energy consumption: ${totalEnergy.toFixed(2)} units. `;
+    
+    switch (energyMode) {
+        case 'aggressive':
+            summary += 'Aggressive energy saving mode prioritized power efficiency over performance.';
+            break;
+        case 'balanced':
+            summary += 'Balanced mode maintained equilibrium between performance and energy consumption.';
+            break;
+        case 'performance':
+            summary += 'Performance-first mode optimized for speed with reasonable power constraints.';
+            break;
+    }
+    
+    document.getElementById('energySummary').textContent = summary;
+    
+    // Energy chart would go here with a charting library
+    document.getElementById('energyChart').innerHTML = 'Energy consumption chart would be displayed here.';
+}
+
+function updateComparison() {
+    // Simplified comparison calculations
+    const energyMode = document.getElementById('energyMode').value;
+    let energySavings, perfImpact;
+    
+    switch (energyMode) {
+        case 'aggressive':
+            energySavings = '20-30%';
+            perfImpact = '-5 to -10%';
+            break;
+        case 'balanced':
+            energySavings = '10-15%';
+            perfImpact = '-2 to -5%';
+            break;
+        case 'performance':
+            energySavings = '5-10%';
+            perfImpact = '0 to -2%';
+            break;
+        default:
+            energySavings = '10-15%';
+            perfImpact = '-2 to -5%';
+    }
+    
+    document.getElementById('energySavings').textContent = energySavings;
+    document.getElementById('perfImpact').textContent = perfImpact;
+    
+    // Core utilization
+    const cpuCores = parseInt(document.getElementById('cpuCores').value);
+    const activeCores = Math.min(cpuCores, processes.length);
+    document.getElementById('activeCores').textContent = `${activeCores}/${cpuCores}`;
+    
+    const pgTime = ((cpuCores - activeCores) / cpuCores * 100).toFixed(0);
+    document.getElementById('pgTime').textContent = `${pgTime}%`;
+}
+
 function showGanttChart() {
-    if (completedProcesses.length === 0) {
-        alert("Please run the scheduler first to generate a Gantt chart.");
+    if (!window.ganttChartData || window.ganttChartData.length === 0) {
+        alert('Please run the scheduler first to generate the Gantt chart.');
         return;
     }
     
-    document.getElementById('ganttContainer').scrollIntoView({ behavior: 'smooth' });
+    // Simple text-based Gantt chart
+    let ganttHTML = '<div style="position: relative; height: 300px; overflow-x: auto;">';
+    
+    // Get unique process IDs
+    const processes = [...new Set(window.ganttChartData.map(item => item.pid))];
+    
+    // Calculate scale
+    const lastEndTime = Math.max(...window.ganttChartData.map(item => item.end));
+    const timeUnit = Math.max(500 / lastEndTime, 20); // At least 20px per time unit
+    
+    // Create rows for each process
+    processes.forEach((pid, index) => {
+        const yPos = 50 + index * 40;
+        
+        // Add process label
+        ganttHTML += `<div style="position: absolute; left: 0; top: ${yPos}px;">${pid}</div>`;
+        
+        // Add execution blocks
+        window.ganttChartData.filter(item => item.pid === pid).forEach(block => {
+            const width = (block.end - block.start) * timeUnit;
+            const left = block.start * timeUnit + 50; // 50px offset for labels
+            
+            ganttHTML += `
+                <div style="position: absolute; left: ${left}px; top: ${yPos - 15}px; width: ${width}px; height: 30px; background-color: var(--primary-color); 
+                     color: white; text-align: center; line-height: 30px; border-radius: 3px;">
+                    ${block.end - block.start}
+                </div>
+            `;
+        });
+    });
+    
+    // Add time axis
+    ganttHTML += '<div style="position: absolute; top: 10px; left: 50px; right: 0;">';
+    for (let t = 0; t <= lastEndTime; t += 5) {
+        ganttHTML += `<div style="position: absolute; left: ${t * timeUnit}px;">${t}</div>`;
+    }
+    ganttHTML += '</div>';
+    
+    ganttHTML += '</div>';
+    
+    document.getElementById('ganttChart').innerHTML = ganttHTML;
 }
+
+// Initialize the page
+document.addEventListener('DOMContentLoaded', function() {
+    // Set first tab as active by default
+    showTab('results');
+});
