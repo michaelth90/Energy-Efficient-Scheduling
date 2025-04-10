@@ -7,7 +7,11 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <h2>Energy-Aware Round Robin (EARR) Scheduler</h2>
+    <header class="header">
+        <h1>Energy-Aware Round Robin (EARR) Scheduler</h1>
+        <p>Advanced CPU scheduling for energy efficiency</p>
+    </header>
+
     <div class="explanation">
         <h3>About Energy-Aware Round Robin</h3>
         <p>Energy-Aware Round Robin (EARR) is an enhanced version of traditional Round Robin scheduling that optimizes for power efficiency. It achieves this by:</p>
@@ -32,45 +36,190 @@
     <div class="container">
         <h3>Enter Process Details</h3>
         <form id="processForm">
-            <label for="pid">Process ID:</label>
-            <input type="text" id="pid">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="pid">Process ID:</label>
+                    <input type="text" id="pid" placeholder="e.g., P1">
+                </div>
+                
+                <div class="form-group">
+                    <label for="arrivalTime">Arrival Time:</label>
+                    <input type="number" id="arrivalTime" min="0" placeholder="0">
+                </div>
+                
+                <div class="form-group">
+                    <label for="burstTime">Burst Time:</label>
+                    <input type="number" id="burstTime" min="1" placeholder="10">
+                </div>
+                
+                <div class="form-group">
+                    <label for="priority">Priority (Optional):</label>
+                    <input type="number" id="priority" min="1" max="10" placeholder="1-10">
+                </div>
+                
+                <div class="form-group">
+                    <label for="powerProfile">Power Profile:</label>
+                    <select id="powerProfile">
+                        <option value="low">Low (Energy-saving)</option>
+                        <option value="medium" selected>Medium (Balanced)</option>
+                        <option value="high">High (Performance)</option>
+                    </select>
+                </div>
+            </div>
             
-            <label for="arrivalTime">Arrival Time:</label>
-            <input type="number" id="arrivalTime">
-            
-            <label for="burstTime">Burst Time:</label>
-            <input type="number" id="burstTime">
-            
-            <button type="button" onclick="addProcess()">Add Process</button>
+            <div class="button-container">
+                <button type="button" class="primary-button" onclick="addProcess()">Add Process</button>
+                <button type="reset" class="secondary-button">Clear Form</button>
+            </div>
         </form>
     </div>
 
     <div class="container">
-        <h3>Process List</h3>
-        <table id="processTable">
-            <tr>
-                <th>Process ID</th>
-                <th>Arrival Time</th>
-                <th>Burst Time</th>
-            </tr>
-        </table>
+        <div class="table-header">
+            <h3>Process List</h3>
+            <button type="button" class="danger-button" onclick="clearProcesses()">Clear All</button>
+        </div>
+        <div class="table-container">
+            <table id="processTable">
+                <thead>
+                    <tr>
+                        <th>Process ID</th>
+                        <th>Arrival Time</th>
+                        <th>Burst Time</th>
+                        <th>Priority</th>
+                        <th>Power Profile</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        <div class="info-box" id="processCount">
+            Total Processes: 0
+        </div>
     </div>
 
     <div class="container">
-        <button onclick="calculateEARR()">Run EARR Scheduling</button>
+        <div class="config-panel">
+            <h3>Scheduling Configuration</h3>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="baseQuantum">Base Time Quantum:</label>
+                    <input type="number" id="baseQuantum" min="1" value="3">
+                </div>
+                <div class="form-group">
+                    <label for="energyMode">Energy Optimization:</label>
+                    <select id="energyMode">
+                        <option value="balanced">Balanced</option>
+                        <option value="aggressive">Aggressive Saving</option>
+                        <option value="performance">Performance First</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="cpuCores">Available CPU Cores:</label>
+                    <input type="number" id="cpuCores" min="1" max="16" value="4">
+                </div>
+            </div>
+        </div>
+        
+        <div class="button-container">
+            <button onclick="calculateEARR()" class="primary-button">Run EARR Scheduling</button>
+            <button onclick="showGanttChart()" class="secondary-button">View Gantt Chart</button>
+        </div>
     </div>
 
-    <div class="container">
+    <div class="container results-container">
         <h3>Scheduling Results</h3>
-        <table id="resultTable">
-            <tr>
-                <th>Process ID</th>
-                <th>Waiting Time</th>
-                <th>Turnaround Time</th>
-                <th>Energy Consumption</th>
-            </tr>
-        </table>
+        <div class="tabs">
+            <button class="tab-button active" onclick="showTab('results')">Process Results</button>
+            <button class="tab-button" onclick="showTab('energy')">Energy Analysis</button>
+            <button class="tab-button" onclick="showTab('comparison')">Comparison</button>
+        </div>
+        
+        <div id="results" class="tab-content active">
+            <div class="table-container">
+                <table id="resultTable">
+                    <thead>
+                        <tr>
+                            <th>Process ID</th>
+                            <th>Waiting Time</th>
+                            <th>Turnaround Time</th>
+                            <th>Response Time</th>
+                            <th>Energy Consumption</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-title">Avg. Waiting Time</div>
+                    <div class="stat-value" id="avgWaitingTime">0.00</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-title">Avg. Turnaround Time</div>
+                    <div class="stat-value" id="avgTurnaroundTime">0.00</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-title">Throughput</div>
+                    <div class="stat-value" id="throughput">0.00</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-title">Energy Efficiency</div>
+                    <div class="stat-value" id="energyEfficiency">0.00</div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="energy" class="tab-content">
+            <div class="chart-container">
+                <div id="energyChart"></div>
+            </div>
+            <div class="info-box">
+                <h4>Energy Optimization Summary</h4>
+                <p id="energySummary">Run the scheduler to see energy optimization details.</p>
+            </div>
+        </div>
+        
+        <div id="comparison" class="tab-content">
+            <div class="comparison-grid">
+                <div class="comparison-card">
+                    <h4>EARR vs Standard RR</h4>
+                    <div class="metric-row">
+                        <span>Energy Savings:</span>
+                        <span id="energySavings">0%</span>
+                    </div>
+                    <div class="metric-row">
+                        <span>Performance Impact:</span>
+                        <span id="perfImpact">0%</span>
+                    </div>
+                </div>
+                <div class="comparison-card">
+                    <h4>Core Utilization</h4>
+                    <div class="metric-row">
+                        <span>Active Cores:</span>
+                        <span id="activeCores">0/4</span>
+                    </div>
+                    <div class="metric-row">
+                        <span>Power-gated Time:</span>
+                        <span id="pgTime">0%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
+    
+    <div class="container">
+        <div id="ganttContainer" class="chart-container">
+            <h3>Gantt Chart</h3>
+            <div id="ganttChart"></div>
+        </div>
+    </div>
+    
+    <footer>
+        <p>Energy-Aware Round Robin CPU Scheduler Simulator</p>
+    </footer>
 
     <script src="script.js"></script>
 </body>
